@@ -5,7 +5,7 @@
 (function(global) {
 	"use strict";
 
-	function async(arr, finalCB, scope) {
+	function async(arr, finalCB, scope, noYield) {
 		if(!arr || arr.length === 0) {
 			return false;
 		}
@@ -21,25 +21,30 @@
 				argArr.push(args[i]);
 			}
 			if(err && finalCB) {
-				async_do(finalCB, args); return;
+				async_do(finalCB, args, scope, noYield); return;
 			}
 			var next = arr[++index];
 			if(next) {
 				argArr.push(async_handler);
-				async_do(next, argArr);
+				async_do(next, argArr, scope, noYield);
 			} else {
-				async_do(finalCB, [null].concat(argArr));
+				async_do(finalCB, [null].concat(argArr), scope, noYield);
 			}
 		}
 
-		function async_do(cb, argarr, scope) {
-			setTimeout(function async_yield() {
-				scope = scope || null;
+		function async_do(cb, argarr, scope, noYield) {
+			scope = scope || null;
+			if(!noYield) {
+				setTimeout(function async_yield() {
+					cb.apply(scope, argarr);
+				},0);
+			} else {
 				cb.apply(scope, argarr);
-			},0);
+			}
 		}
 
-		arr[index](async_handler);
+		// Start the first one
+		async_do(arr[index], [async_handler], scope, noYield);
 	}
 
 	// Export/expose in global
